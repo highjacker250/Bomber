@@ -1,10 +1,11 @@
 
-name: Python Dependency Check
+name: Python Bot Runner
 
 on:
   workflow_dispatch:
   push:
     paths:
+      - "bot.py"
       - "requirements.txt"
       - ".github/workflows/test.yml"
 
@@ -12,8 +13,10 @@ permissions:
   contents: read
 
 jobs:
-  dependency-check:
+  run-bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,9 +25,23 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Verify aiogram
-        run: python -c "import aiogram; print(aiogram.__version__)"
+      - name: Verify dependencies
+        run: |
+          python --version
+          python -c "import aiogram; print('aiogram:', aiogram.__version__)"
+          python -c "import aiohttp; print('aiohttp:', aiohttp.__version__)"
+
+      - name: Run bot
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: python bot.py
+
